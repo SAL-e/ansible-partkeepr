@@ -1,2 +1,11 @@
 ---
-# defaults file for ansible-partkeepr
+partkeepr_version: '1.4.0'
+partkeepr_install_path: '/opt'
+partkeepr_user: 'partkeepr'
+partkeepr_group: 'partkeepr'
+
+partkeepr_offline_install: "yes"
+partkeepr_offline_src: "./Downloads"
+
+partkeepr_url: "https://downloads.partkeepr.org/partkeepr-"
+

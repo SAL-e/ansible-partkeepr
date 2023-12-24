@@ -1,2 +1,53 @@
 ---
-# tasks file for ansible-partkeepr
+- name: Create <partkeepr_user> system account
+  user:
+    name: "{{ partkeepr_user }}"
+    comment: "partkeepr system account,,,"
+    system: yes
+    home: "{{ partkeepr_install_path }}/partkeepr-{{ partkeepr_version }}"
+    createhome: no
+    shell: /usr/sbin/nologin
+
+- name: Install offline partkeepr-<version>.tbz2 package.
+  unarchive:
+    src: "{{ partkeepr_offline_src }}/partkeepr-{{ partkeepr_version }}.tbz2"
+    dest: "{{ partkeepr_install_path }}"
+  when: partkeepr_offline_install | bool
+
+- name: Download & Install partkeepr-<version>.tbz2 package.
+  unarchive:
+    src: "{{ partkeepr_url }}{{ partkeepr_version }}.tbz2"
+    dest: "{{ partkeepr_install_path }}"
+    remote_src: yes
+  when: not partkeepr_offline_install | bool
+
+- name: Set <partkeepr_user> as owner of partkeepr install directories and files
+  file:
+    dest: "{{ partkeepr_install_path }}/partkeepr-{{ partkeepr_version }}"
+    owner: "{{ partkeepr_user }}"
+    group: "{{ partkeepr_group }}"
+    recurse: yes
+
+- name: Setup Partkeepr maintenance cron job
+  cron:
+    name: "partkeepr"
+    minute: "0"
+    hour: "0,6,12,18"
+    job: "/usr/bin/php {{ partkeepr_install_path }}/partkeepr-{{ partkeepr_version }}/app/console partkeepr:cron:run"
+
+- name: Configure 'geerlingguy.apache' role
+  set_fact:
+    apache_packages: "{{ partkeepr_apache_packages }}"
+    apache_remove_default_vhost: true
+    apache_vhosts:
+      - servername: "{{ ansible_hostname }}"
+        documentroot: "{{ partkeepr_install_path }}/partkeepr-{{ partkeepr_version }}/web"
+        extra_parameters: |
+          <IfModule mpm_itk_module>
+            AssignUserId {{ partkeepr_user }} {{ partkeepr_group }}
+          </IfModule>
+
+- name: Configure 'geerlingguy.php' role
+  set_fact:
+    php_packages: "{{ partkeepr_php_packages }}"
+
